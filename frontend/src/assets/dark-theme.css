@@ -1,0 +1,91 @@
+/* src/assets/dark-theme.css */
+
+/* =========================================
+   1. Variáveis de Tema (Padrão Light Mode)
+   ========================================= */
+:root {
+    /* Cores Principais da Aplicação */
+    --bg-app: #f8f9fa;
+    --bg-card: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --border-color: #dee2e6;
+
+    /* Cores Específicas de Gráficos (Light) */
+    --chart-card-bg: #ffffff;
+    --chart-card-border: #e2e8f0;
+    --chart-card-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+    /* Texto e Grade do Gráfico */
+    --chart-text-color: #64748b;
+    --chart-grid-color: rgba(0, 0, 0, 0.05);
+
+    /* Cores das Barras (Light Mode - Tons mais claros/suaves) */
+    --chart-bar-volume: rgba(59, 130, 246, 0.5);
+    /* Azul mais suave */
+    --chart-bar-media: rgba(239, 68, 68, 0.5);
+    /* Vermelho mais suave */
+}
+
+/* =========================================
+   2. Sobrescritas do Tema (Dark Mode)
+   ========================================= */
+[data-theme="dark"] {
+    /* Cores Principais da Aplicação */
+    --bg-app: #0f1219;
+    --bg-card: #1a1f2e;
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --border-color: #2d3748;
+
+    /* Cores Específicas de Gráficos (Dark) */
+    --chart-card-bg: rgba(30, 40, 60, 0.7);
+    --chart-card-border: rgba(100, 120, 255, 0.3);
+    --chart-card-shadow: 0 0 20px rgba(60, 100, 240, 0.15), inset 0 0 10px rgba(60, 100, 240, 0.05);
+
+    /* Texto e Grade do Gráfico */
+    --chart-text-color: #cbd5e1;
+    --chart-grid-color: rgba(255, 255, 255, 0.1);
+
+    /* Cores das Barras (Dark Mode - Neon Vibrante) */
+    --chart-bar-volume: rgba(13, 110, 253, 0.9);
+    --chart-bar-media: rgba(220, 53, 69, 0.9);
+}
+
+/* =========================================
+   3. Utilitários Globais e Estilos Base
+   ========================================= */
+body {
+    background-color: var(--bg-app) !important;
+    color: var(--text-primary) !important;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 
+   Utilitário Neon Card 
+   Usado para o Widget de Chat IA para dar um visual distinto dos Glass Cards 
+*/
+.neon-card {
+    background-color: var(--chart-card-bg) !important;
+    border: 1px solid var(--chart-card-border) !important;
+    box-shadow: var(--chart-card-shadow) !important;
+    backdrop-filter: blur(10px);
+    border-radius: 16px !important;
+    transition: all 0.3s ease;
+}
+
+.neon-card .card-header {
+    border-bottom-color: var(--border-color) !important;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+/* Utilitários Auxiliares */
+.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}

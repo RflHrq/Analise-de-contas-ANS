@@ -1,0 +1,161 @@
+/* =========================================
+   1. Variáveis de Tema (Raiz e Fallbacks)
+   ========================================= */
+:root {
+  /* Fonte padrão do sistema para consistência multiplataforma */
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Esquema de cores e variáveis base para Light Mode */
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  /* Otimizações de fonte */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================
+   2. Reset e Estilos Globais
+   ========================================= */
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* =========================================
+   3. Utilitários de Interface (Loading, etc.)
+   ========================================= */
+
+/* Overlay de Carregamento (Cobre a tela inteira) */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.85);
+  /* Fundo claro por padrão */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  /* Mesmo z-index do modal Bootstrap */
+}
+
+/* Suporte a Overlay no Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .loading-overlay {
+    background-color: rgba(36, 36, 36, 0.9);
+  }
+}
+
+/* =========================================
+   4. Sistema de Cartões "Glass" (Vidro)
+   Este sistema gerencia a aparência de todos os cards da aplicação.
+   ========================================= */
+
+/* Classe Base para o Componente Glass */
+.glass-card {
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  /* Borda sutil padrão */
+}
+
+/* --- MODO ESCURO (Estilo "Vidro Escuro") --- */
+[data-theme="dark"] .glass-card {
+  /* Fundo gradiente ou variável sobrescrita, com blur */
+  background: var(--glass-bg, linear-gradient(135deg, rgba(60, 60, 60, 0.4) 0%, rgba(60, 60, 60, 0.1) 100%)) !important;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  color: white !important;
+}
+
+/* Força filhos a serem transparentes/brancos no Modo Escuro */
+[data-theme="dark"] .glass-card .card-header,
+[data-theme="dark"] .glass-card .card-footer,
+[data-theme="dark"] .glass-card .list-group-item,
+[data-theme="dark"] .glass-card .table,
+[data-theme="dark"] .glass-card .table td,
+[data-theme="dark"] .glass-card .table th {
+  background-color: transparent !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Paginação no Modo Escuro (Glass) */
+[data-theme="dark"] .glass-card .page-link {
+  background-color: transparent !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .glass-card .page-item.disabled .page-link {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* --- MODO CLARO (Estilo "Clean") --- */
+[data-theme="light"] .glass-card {
+  background: var(--glass-bg, #ffffff) !important;
+  color: #212529 !important;
+  /* Texto escuro do Bootstrap */
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .glass-card .card-header {
+  background-color: #f8f9fa !important;
+  /* Cabeçalho cinza claro */
+  color: #212529 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .glass-card .text-white {
+  color: #212529 !important;
+  /* Força texto branco a virar preto no modo claro */
+}
+
+[data-theme="light"] .glass-card .opacity-75 {
+  opacity: 1 !important;
+  /* Remove opacidade para melhor leitura no modo claro */
+}
+
+/* =========================================
+   5. Estilo das Respostas do Chat IA
+   ========================================= */
+.chat-response-ai {
+  background-color: #f8f9fa;
+  /* Cinza claro suave no Light Mode */
+  color: #212529;
+  border: 1px solid #dee2e6;
+}
+
+/* SOBRESCRITA PARA MODO ESCURO */
+[data-theme="dark"] .chat-response-ai {
+  background-color: #1a1f2e !important;
+  /* Fundo sólido para contraste */
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Força TODOS os elementos internos a serem brancos no modo escuro */
+[data-theme="dark"] .chat-response-ai * {
+  color: #ffffff !important;
+}
