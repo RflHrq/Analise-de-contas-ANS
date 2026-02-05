@@ -437,7 +437,7 @@ const decodeExpenseCode = (conta) => {
     
     // ...
 };
-```
+
 
 
 const resolveProduct = (conta) => {
