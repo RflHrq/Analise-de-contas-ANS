@@ -56,7 +56,7 @@
                         <tr>
                             <th style="width: 10%">Período</th>
                             <th style="width: 10%">Conta</th>
-                            <th style="width: 20%">Produto (4º Dígito)</th> <th style="width: 20%">Evento (5º Dígito)</th>  <th style="width: 25%">Descrição Detalhada</th>
+                            <th style="width: 20%">Classificação (4º Dígito)</th> <th style="width: 20%">Produto (5º Dígito)</th>  <th style="width: 25%">Descrição Detalhada</th>
                             <th style="width: 15%" class="text-end">Valor</th>
                         </tr>
                     </thead>
@@ -72,12 +72,12 @@
                             
                             <td>
                                 <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">
-                                    {{ resolveProduct(d.conta_contabil) }}
+                                    {{ decodeExpenseCode(d.conta_contabil).label4 }}
                                 </span>
                             </td>
                             
                             <td class="fw-bold" style="font-size: 0.85rem;">
-                                {{ resolveEventType(d.conta_contabil) }}
+                                {{ decodeExpenseCode(d.conta_contabil).label5 }}
                             </td>
                             
                             <td class="small opacity-75">{{ d.descricao || '-' }}</td>
@@ -130,69 +130,76 @@ const totalConsolidado = computed(() => {
 });
 
 // =========================================================================
-// 🧠 LÓGICA DE INTERPRETAÇÃO DO PLANO DE CONTAS (ANS)
+// LÓGICA DE INTERPRETAÇÃO DO PLANO DE CONTAS (ANS)
 // Baseada na estrutura do código da conta contábil (Ex: 4.1.1.X.Y)
 // =========================================================================
 
-// Mapeamento do 4º Dígito (Identificação do Produto)
-const PRODUCT_MAP = {
-    '1': 'Médico-Hospitalar',
-    '2': 'Odontológica',
-    '5': 'Corresp. Médico-Hospitalar',
-    '6': 'Corresp. Odontológica'
+// 1. MAPEAMENTO DE CONTEXTO (3º Dígito)
+const CONTEXTS = {
+    '1': { label: 'Avisados', type: 'sinistro' },
+    '4': { label: 'IBNR (Não Avisados)', type: 'ibnr' },
+    '5': { label: 'Resseguro', type: 'seguro_resseguro' },
+    '6': { label: 'Seguro', type: 'seguro_resseguro' }
 };
 
-// Mapeamento do 5º Dígito (Tipo de Evento)
-// Distinto para Médico e Odontológico
-const EVENT_MAP_MEDICAL = {
-    '1': 'Consultas Médicas',
-    '2': 'Exames',
-    '3': 'Terapias',
-    '4': 'Internações',
-    '5': 'Outros Atend. Ambulatoriais',
-    '6': 'Demais Despesas',
-    '7': 'SUS',
-    '8': 'Operações Exterior',
-    '9': 'Sucursais Exterior'
-};
-
-const EVENT_MAP_DENTAL = {
-    '1': 'Procedimentos Odontológicos',
-    '6': 'Demais Despesas',
-    '7': 'SUS',
-    '8': 'Operações Exterior',
-    '9': 'Sucursais Exterior'
+// 2. MAPEAMENTOS ESPECÍFICOS POR CONTEXTO
+const MAPS = {
+    // Para 411 (Avisados), o 4º dígito é a Modalidade
+    modality: {
+        '1': 'Proc. (Fee-for-service)',
+        '2': 'Capitation',
+        '3': 'Orçamento Global',
+        '4': 'Pacote',
+        '5': 'Rateio',
+        '6': 'Rede Indireta',
+        '7': 'Reembolso',
+        '8': 'SUS',
+        '9': 'Outras Formas'
+    },
+    // Para 415/416, o 4º dígito é o Tipo de Custo
+    subType: {
+        '1': 'Prêmios',
+        '2': 'Outras Despesas'
+    },
+    // O 5º dígito é quase sempre o Produto
+    product: {
+        '1': 'Médico-Hospitalar',
+        '2': 'Odontológica'
+    }
 };
 
 /**
- * Resolve o nome do Produto baseado no 4º dígito da conta contábil.
+ * Decodifica o código contábil seguindo a hierarquia ANS.
+ * Retorna objetos prontos para o template.
  */
-const resolveProduct = (conta) => {
-    if (!conta || conta.length < 4) return 'Desconhecido';
-    const digit4 = conta.charAt(3); // Índice 3 é o 4º caractere
-    return PRODUCT_MAP[digit4] || 'Outros Produtos';
-};
-
-/**
- * Resolve o Tipo de Evento baseado no 5º dígito e no contexto (Médico vs Odonto).
- */
-const resolveEventType = (conta) => {
-    if (!conta || conta.length < 5) return '-';
+const decodeExpenseCode = (conta) => {
+    if (!conta) return { label4: '-', label5: '-' };
     
-    const digit4 = conta.charAt(3);
-    const digit5 = conta.charAt(4); // Índice 4 é o 5º caractere
+    // Remove pontos para garantir acesso posicional correto (Ex: 4.1.1... -> 411...)
+    const clean = conta.replace(/\D/g, '');
+    if (clean.length < 5) return { label4: 'Inválido', label5: 'Inválido' };
 
-    // Contexto Médico (1 ou 5)
-    if (digit4 === '1' || digit4 === '5') {
-        return EVENT_MAP_MEDICAL[digit5] || 'Outros Eventos';
-    }
+    const digit3 = clean.charAt(2); // Contexto
+    const digit4 = clean.charAt(3); // Modalidade/Subtipo
+    const digit5 = clean.charAt(4); // Produto
+
+    const context = CONTEXTS[digit3];
     
-    // Contexto Odontológico (2 ou 6)
-    if (digit4 === '2' || digit4 === '6') {
-        return EVENT_MAP_DENTAL[digit5] || 'Outros Eventos';
+    let label4 = 'Não Classificado';
+    let label5 = MAPS.product[digit5] || 'Outros Produtos';
+
+    if (context) {
+        if (context.type === 'sinistro') {
+            // Se for Sinistro (411), 4º dígito é Modalidade
+            label4 = MAPS.modality[digit4] || 'Outra Modalidade';
+        } else if (['ibnr', 'seguro_resseguro'].includes(context.type)) {
+            // Se for IBNR ou Seguro (414, 415, 416), 4º dígito é Subtipo
+            label4 = MAPS.subType[digit4] || 'Outros Custos';
+        }
     }
 
-    return 'Não Classificado';
+    return { label4, label5 };
+
 };
 
 // Busca os dados detalhados ao montar o componente

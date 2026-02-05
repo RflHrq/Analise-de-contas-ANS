@@ -23,7 +23,7 @@ A solução implementada abrange desde a coleta automatizada de dados através d
 
 O sistema implementa um módulo de *web scraping* robusto localizado no arquivo `scraper.py` que realiza o acesso automatizado ao portal de dados abertos da ANS. A implementação utiliza a biblioteca `HttpClient` com headers customizados que simulam um navegador real através do parâmetro `User-Agent`. Esta técnica foi necessária para evitar bloqueios automáticos do servidor da ANS que retornam erros HTTP 403 (Forbidden) ou 406 (Not Acceptable) quando detectam requisições automatizadas.
 
-O processo de identificação dos três últimos trimestres disponíveis é realizado através do método `get_top_quarters_files` com o parâmetro `limit=3`. O algoritmo executa um crawling hierárquico na estrutura de diretórios do portal: primeiro identifica todos os links de anos disponíveis (exemplo: `2024/`, `2025/`), ordena-os de forma decrescente para priorizar os dados mais recentes, e então navega dentro de cada pasta anual para localizar os arquivos ZIP correspondentes aos trimestres.
+O processo de identificação dos três últimos trimestres disponíveis é realizado através do método `get_top_quarters_files` com o parâmetro `limit=3`, pois o cliente solicitou que fossem considerados apenas os três últimos trimestres disponíveis. O algoritmo executa um crawling hierárquico na estrutura de diretórios do portal: primeiro identifica todos os links de anos disponíveis (exemplo: `2024/`, `2025/`), ordena-os de forma decrescente para priorizar os dados mais recentes, e então navega dentro de cada pasta anual para localizar os arquivos ZIP correspondentes aos trimestres.
 
 A resiliência a variações de nomenclatura foi implementada através de expressões regulares (Regex) sofisticadas no método `_detect_quarter`. O sistema utiliza padrões como `r'(\d)t(\d{4})'` que conseguem identificar trimestres independentemente do formato do nome do arquivo. Isso permite que o sistema funcione corretamente tanto com nomes como `1T2024.zip` quanto `2024_01_demonstracoes.zip` ou outras variações encontradas nos dados históricos da ANS.
 
@@ -53,7 +53,7 @@ O tratamento de inconsistências foi implementado seguindo três categorias prin
 
 #### Inconsistência A: CNPJs Duplicados com Razões Sociais Diferentes
 
-O sistema assume que a Receita Federal e o Cadastro de Operadoras (CADOP) da ANS são as fontes autoritativas da verdade. A implementação no módulo `etl/enrichment.py` ignora completamente a Razão Social que vem nos arquivos CSV financeiros, pois estes são campos de texto livre propensos a erros de digitação e variações ortográficas. O sistema realiza um JOIN com o arquivo oficial CADOP, sobrescrevendo todas as razões sociais pela versão oficial e padronizada. Como resultado, todos os registros de um mesmo CNPJ ficam com a Razão Social idêntica, eliminando variações como "UNIMED BH", "Unimed Belo Horizonte", "UNIMED BELO HORIZONTE COOP", etc.
+O sistema assume que a Receita Federal e o Cadastro de Operadoras (CADOP) da ANS são as fontes autoritativas da verdade. A implementação no módulo `etl/enrichment.py` ignora completamente a Razão Social que vem nos arquivos CSV financeiros, pois estes são campos de texto livre propensos a erros de digitação e variações ortográficas. O sistema, deixa em branco esses campos (CNPJ e Razão Social) e realiza um JOIN com o arquivo oficial CADOP (exigido nas proximas etapas propostas pelo cliente), sobrescrevendo todas as razões sociais pela versão oficial e padronizada. Como resultado, todos os registros de um mesmo CNPJ ficam com a Razão Social idêntica, eliminando variações como "UNIMED BH", "Unimed Belo Horizonte", "UNIMED BELO HORIZONTE COOP", etc.
 
 #### Inconsistência B: Valores Zerados ou Negativos
 
@@ -73,7 +73,7 @@ A compactação final do arquivo consolidado é realizada automaticamente ao té
 
 ### 2.1 VALIDAÇÃO DE CNPJ E ESTRATÉGIAS DE TRATAMENTO
 
-A validação de CNPJ foi implementada seguindo rigorosamente o algoritmo oficial de **Módulo 11** da Receita Federal. O código está localizado em `utils/validators.py` na classe `CNPJValidator.validate`. O processo de validação segue três etapas: primeiro remove todos os caracteres não numéricos usando expressão regular `re.sub(r'\D', '')`, depois verifica se o resultado tem exatamente 14 dígitos e se não é uma sequência repetida inválida como "11111111111111", e finalmente calcula e compara os dois dígitos verificadores usando o algoritmo de Módulo 11.
+A validação de CNPJ foi implementada seguindo o algoritmo oficial de **Módulo 11** da Receita Federal. O código está localizado em `utils/validators.py` na classe `CNPJValidator.validate`. O processo de validação segue três etapas: primeiro remove todos os caracteres não numéricos usando expressão regular `re.sub(r'\D', '')`, depois verifica se o resultado tem exatamente 14 dígitos e se não é uma sequência repetida inválida como "11111111111111", e finalmente calcula e compara os dois dígitos verificadores usando o algoritmo de Módulo 11.
 
 A aplicação prática desta validação ocorre no módulo `etl/enrichment.py`, onde o sistema cria uma coluna booleana `CNPJ_Valido` para cada registro do dataset. Esta abordagem foi escolhida cuidadosamente através de uma análise de *trade-offs* técnicos.
 
@@ -275,7 +275,9 @@ Esta decisão foi tomada porque para construir uma paginação robusta no fronte
 Além das rotas básicas solicitadas, a API foi expandida para suportar um dashboard profissional:
 
 *   `GET /api/operadoras`: Listagem paginada com suporte a busca textual através do parâmetro `search`. Implementa busca *fuzzy* usando `ILIKE` do PostgreSQL que procura o termo tanto no CNPJ quanto na Razão Social.
+*   `GET /api/operadoras/{cnpj}`: Retorna os dados cadastrais completos de uma operadora específica (Razão Social, Modalidade, UF, etc).
 *   `GET /api/operadoras/{cnpj}/despesas`: Drill-down detalhado mostrando todos os lançamentos contábeis históricos de uma operadora específica, permitindo análise granular.
+*   `GET /api/estatisticas`: Retorna estatísticas agregadas globais do sistema, incluindo total de despesas, média por operadora, top 5 maiores despesas e distribuição por UF.
 *   `GET /api/analytics/storytelling`: Endpoint agregador turbinado que retorna todas as métricas necessárias para o dashboard em uma única requisição HTTP: KPIs macro (volume total de mercado, ticket médio, número de operadoras ativas), Top Movers (operadoras com maior crescimento percentual), distribuição geográfica por estado, e clube de consistência (operadoras que se mantiveram acima da média). Esta abordagem de "fat endpoint" reduz o número de round-trips HTTP, melhorando a performance percebida do dashboard.
 *   `POST /api/ai/ask`: Endpoint experimental de chatbot que aceita perguntas em linguagem natural e as converte em queries SQL através de um modelo de linguagem.
 
@@ -310,7 +312,7 @@ O dashboard é composto por seis componentes principais que oferecem diferentes 
 
 ### 4.5 DOCUMENTAÇÃO DA API
 
-Foi criada uma coleção completa no Postman (`API ANS Analytics.postman_collection.json`) contendo todos os endpoints com exemplos de requisições e descrições detalhadas. A coleção está organizada em quatro seções principais: Listar Operadoras (com demonstração de paginação e busca), Detalhes de Despesas por CNPJ, Dashboard Storytelling, e Chatbot IA. Cada requisição inclui descrições dos parâmetros aceitos e exemplos de payloads de resposta.
+Foi criada uma coleção completa no Postman (`API ANS Analytics.postman_collection.json`) contendo todos os endpoints com exemplos de requisições e descrições detalhadas. A coleção está organizada em cinco seções principais: Listar Operadoras (com demonstração de paginação e busca), Detalhes da Operadora e Despesas, Estatísticas Gerais, Dashboard Storytelling, e Chatbot IA. Cada requisição inclui descrições dos parâmetros aceitos e exemplos de payloads de resposta.
 
 ---
 
@@ -318,16 +320,39 @@ Foi criada uma coleção completa no Postman (`API ANS Analytics.postman_collect
 
 ### 5.1 MODO IA: TEXT-TO-SQL CHATBOT
 
-O sistema implementa um chatbot inteligente capaz de responder perguntas em linguagem natural sobre os dados, localizado em `api/services/ai_analyst.py`. Este não é um modelo que aprendeu contabilidade através de training, mas sim um "engenheiro de software automatizado" que transforma português em SQL usando uma técnica simplificada de **RAG (Retrieval-Augmented Generation)**.
+O sistema implementa um chatbot capaz de responder perguntas em linguagem natural sobre os dados, localizado em `api/services/ai_analyst.py`. Implementa uma arquitetura de Engenharia de Software Assistida por LLM (Large Language Model). O sistema não utiliza um modelo treinado especificamente com dados da ANS, mas sim um modelo de propósito geral que atua como tradutor inteligente de linguagem natural para SQL, usando uma técnica simplificada de **RAG (Retrieval-Augmented Generation)**.
 
 #### Arquitetura do Sistema
 
 O fluxo completo funciona em quatro estágios:
 
-1.  **Estágio 1 - Definição do Esquema**: O sistema prompt contém uma descrição textual completa da estrutura do banco de dados, incluindo nomes de tabelas, colunas, tipos de dados, relacionamentos de chaves estrangeiras, e exemplos de valores típicos. Este "manual" do banco é chamado de `DB_SCHEMA`.
-2.  **Estágio 2 - Engenharia de Prompt**: Quando o usuário envia uma pergunta como "Quais operadoras gastaram mais em São Paulo no último ano?", o sistema constrói um prompt estruturado para o modelo de linguagem Llama 3: "Você é um especialista em SQL e analista de dados da ANS. O banco possui as tabelas 'operadoras' (colunas: registro_ans, razao_social, uf, modalidade) e 'despesas_eventos' (colunas: registro_ans, ano, trimestre, valor_despesas, conta_contabil). A tabela despesas_eventos se relaciona com operadoras através de registro_ans. Converta a pergunta do usuário '[pergunta original]' em uma query SQL válida para PostgreSQL. Retorne APENAS o código SQL, sem explicações."
-3.  **Estágio 3 - Geração e Validação**: O modelo de linguagem gera a query SQL. O sistema então aplica uma camada de segurança validando se a query contém apenas comandos `SELECT` e não possui palavras-chave perigosas como `DROP`, `DELETE`, `UPDATE`, `INSERT`, `ALTER`, `CREATE`, `TRUNCATE`, ou `GRANT`. Isso implementa o princípio de menor privilégio, garantindo que mesmo se o modelo de IA for "jailbroken" pelo usuário, não é possível modificar ou destruir dados.
-4.  **Estágio 4 - Execução Segura**: A query aprovada é executada no banco de dados usando uma conexão com usuário `reader` que possui apenas permissões de leitura (SELECT). Os resultados são formatados em JSON e retornados para o frontend, onde são exibidos em formato tabular legível.
+5.1.1. **Estágio 1 - Definição do Esquema**: Quando o usuário envia uma pergunta como "Qual operadora gastou mais em São Paulo?", o backend não envia apenas essa frase para a IA. O sistema primeiro injeta um Manual Técnico Completo através de um System Prompt armazenado na constante `DB_SCHEMA`.
+
+Este manual contém três componentes críticos:
+
+*   **Mapeamento de Tabelas**: Define todas as entidades disponíveis no banco de dados, explicando que existe uma tabela operadoras (dimensão) e uma tabela despesas_eventos (fato), com seus respectivos relacionamentos.
+*   **Dicionário de Dados**: Lista detalhadamente cada coluna disponível (registro_ans, valor_despesas, uf, modalidade, ano, trimestre), especificando tipos de dados, constraints e significado semântico de cada campo.
+*   **Regras de Negócio e Boas Práticas SQL**: Instrui explicitamente a IA sobre padrões obrigatórios. Exemplos extraídos do código real:
+
+    *   "Sempre use JOIN através da chave registro_ans para relacionar tabelas"
+    *   "Para agregações financeiras, utilize SUM(d.valor_despesas) com cast para NUMERIC"
+    *   "Filtros geográficos devem usar a coluna operadoras.uf em formato de sigla (ex: 'SP', 'RJ')"
+
+5.1.2. **Estágio 2 - Geração de SQL via Groq Cloud**: O sistema utiliza a API da Groq executando o modelo Llama 3.1 (70B parâmetros), escolhido por sua capacidade superior de raciocínio lógico e geração de código estruturado.
+Input Completo: System Prompt (contexto do banco) + Pergunta do Usuário (intenção semântica)
+Processamento Neural: O Llama 3 analisa a pergunta em linguagem natural, identifica entidades mencionadas (ex: "São Paulo" → uf='SP'), infere operações necessárias (ex: "maior" → ORDER BY DESC LIMIT 1), e sintetiza uma query SQL PostgreSQL válida.
+
+5.1.3. **Estágio 3 - Blindagem de Segurança (Firewall de Queries)**: Antes de executar o SQL gerado, o sistema passa por uma camada de validação de segurança no Python para evitar ataques ou erros:
+
+**Whitelist de Comandos:** Aceita apenas queries que iniciam com `SELECT` ou `WITH` (CTEs). Qualquer outro comando é rejeitado imediatamente.
+
+**Blacklist de Palavras Perigosas:** Bloqueia 100% de comandos destrutivos através de regex case-insensitive que detecta: `DROP`, `DELETE`, `UPDATE`, `INSERT`, `ALTER`, `CREATE`, `TRUNCATE`, `GRANT`, `REVOKE`, `EXEC`, `EXECUTE`.
+
+**Sanitização Anti-Injeção:** Remove tentativas de SQL Injection através da detecção de múltiplos statements (bloqueio de `;` seguido de comando) e validação de estrutura sintática.
+
+**Análise de Complexidade:** Impõe limites de timeout (5 segundos) para prevenir queries maliciosas que tentam consumir recursos computacionais (ex: produtos cartesianos sem JOIN condition).
+
+5.1.4. **Estágio 4 - Execução Segura**: A query aprovada é executada no banco de dados usando uma conexão com usuário `reader` que possui apenas permissões de leitura (SELECT). Os resultados são formatados em JSON e retornados para o frontend, onde são exibidos em formato tabular legível. Se o resultado estiver vazio, o sistema retorna uma mensagem amigável explicando que não encontrou dados, em vez de um erro técnico.
 
 #### Exemplos de Uso
 
@@ -362,62 +387,58 @@ Esta funcionalidade democratiza o acesso aos dados, permitindo que usuários nã
 
 ### 5.2 INTERPRETAÇÃO AUTOMÁTICA DE CÓDIGOS CONTÁBEIS
 
-Os arquivos brutos da ANS contêm despesas codificadas em um sistema hierárquico de contas contábeis (exemplo: `4.1.1.4.03.01` representa "Internação - Urgência - Clínica Médica"). Armazenar a descrição textual de cada código para cada lançamento seria extremamente redundante (milhões de repetições da string "Internação").
+Os arquivos brutos da ANS contêm despesas codificadas em um sistema hierárquico de contas contábeis. Essas contas são representadas por códigos numéricos (exemplo: `4.1.1.4.03.01`), para descobir o significado de cada código é preciso consultar a tabela de contas contábeis da ANS, que pode ser visualizada em uma planilha disponilizada pela própria ANS nesse site: https://www.gov.br/ans/pt-br/arquivos/assuntos/espaco-da-operadora-de-plano-de-saude/aplicativos-ans/diops/financeiro/2025/DIOPSXML_Financeiro_2025.xlsx/view. Na aba Balancete Despesa da planilha de nome DIOPSXML_Financeiro_2025.xlsx, é possível encontrar o significado de cada código. Armazenar a descrição textual de cada código em banco de dados para cada lançamento seria extremamente redundante (milhões de repetições da string).
 
 #### Solução: Decoding On-Demand no Frontend
 
-A implementação em `frontend/src/components/OperatorModal.vue` (linhas 133-196) decodifica os códigos apenas no momento da renderização visual. O banco armazena apenas o código numérico, e o Vue.js interpreta seu significado através de mapas de tradução.
+A implementação em `frontend/src/components/OperatorModal.vue` nas constantes `CONTEXTS`, `MAPS.modality`, `MAPS.subType`, `MAPS.product` decodifica os códigos apenas no momento da renderização visual. O banco armazena apenas o código numérico, e o Vue.js interpreta seu significado através de mapas de tradução.
 
 #### Lógica dos Dígitos Contábeis
 
-A ANS padroniza as contas do Grupo 4 (Despesas) com uma estrutura rígida onde cada posição do código tem significado:
+A ANS padroniza as contas do Grupo 4 (Despesas) com uma lógica hierárquica onde o significado dos dígitos muda conforme o contexto:
 
 *   **1º dígito** (sempre 4): Identifica o grupo (Despesas)
-*   **2º e 3º dígitos**: Subgrupo e classe
-*   **4º dígito**: Produto/Linha de Negócio
-    *   `1` = Médico-Hospitalar
-    *   `2` = Odontológico
-*   **5º dígito**: Tipo de Evento (contexto-dependente do 4º dígito)
-
-O desafio técnico é que o significado do 5º dígito muda dependendo do produto:
-
-*   Para Produto **Médico-Hospitalar** (4º dígito = 1):
-    *   `1` = Consultas
-    *   `2` = Exames
-    *   `3` = Terapias
-    *   `4` = Internações
-    *   `5` = Outros Atendimentos Ambulatoriais
-
-*   Para Produto **Odontológico** (4º dígito = 2):
-    *   `1` = Procedimentos Odontológicos
-    *   `2` = Próteses
-    *   `3` = Outros
+*   **3º dígito (Contexto)**: Define a natureza do lançamento
+    *   `1`: Avisados (Sinistros)
+    *   `4`: IBNR (Não Avisados)
+    *   `5`: Resseguro
+    *   `6`: Seguro
+*   **4º dígito (Classificação)**: O significado depende do contexto (3º dígito)
+    *   Para **Avisados (1)**: Indica a **Modalidade** (Fee-for-service, Capitation, Reembolso, SUS...)
+    *   Para **IBNR/Outros**: Indica o **Subtipo** (Prêmios, Outras Despesas)
+*   **5º dígito (Produto)**: Indica o segmento
+    *   `1`: Médico-Hospitalar
+    *   `2`: Odontológico
 
 #### Implementação em JavaScript
 
-O código Vue.js implementa funções de resolução contextual:
+O código Vue.js implementa esta lógica hierárquica na função `decodeExpenseCode`:
 
 ```javascript
-const PRODUCT_MAP = {
-    '1': 'Médico-Hospitalar',
-    '2': 'Odontológico',
-    '3': 'Referência',
-    '4': 'Outros'
+/* 1. Mapeamento de Contexto (3º Dígito) */
+const CONTEXTS = {
+    '1': { label: 'Avisados', type: 'sinistro' },
+    '4': { label: 'IBNR', type: 'ibnr' },
+    // ...
 };
 
-const EVENT_MAP_MEDICAL = {
-    '1': 'Consultas',
-    '2': 'Exames',
-    '3': 'Terapias',
-    '4': 'Internações',
-    '5': 'Outros Ambulatoriais'
-};
+/* 2. Decodificação Hierárquica */
+const decodeExpenseCode = (conta) => {
+    const digit3 = conta.charAt(2); // Contexto
+    const digit4 = conta.charAt(3); // Classificação
+    const digit5 = conta.charAt(4); // Produto
 
-const EVENT_MAP_DENTAL = {
-    '1': 'Procedimentos Odonto',
-    '2': 'Próteses',
-    '3': 'Outros Odonto'
+    // Lógica condicional baseada no contexto
+    if (CONTEXTS[digit3].type === 'sinistro') {
+        label4 = MAPS.modality[digit4]; // Ex: SUS, Reembolso
+    } else {
+        label4 = MAPS.subType[digit4];  // Ex: Prêmios
+    }
+    
+    // ...
 };
+```
+
 
 const resolveProduct = (conta) => {
     const digit4 = conta.charAt(3);
@@ -503,13 +524,57 @@ O sistema oferece seis componentes de visualização que compõem um dashboard a
 
 ### Passo a passo
 
-1. Clone o repositório
-2. Instale as dependências
-3. Configure as variáveis de ambiente
-4. Execute o script de ETL
-5. Inicie o servidor de banco de dados
-6. Inicie o servidor de API
-7. Inicie o servidor de frontend
+1. **Clone o repositório**
+   ```bash
+   git clone <URL_DO_REPOSITORIO>
+   ```
+
+2. **Configure o Backend (Python)**
+   ```bash
+   # Crie um ambiente virtual
+   python -m venv .venv
+
+   # Ative o ambiente virtual
+   # Windows:
+   .venv\Scripts\activate
+   # Linux/Mac:
+   source .venv/bin/activate
+
+   # Instale as dependências
+   pip install -r requirements.txt
+   ```
+
+3. **Configure as Variáveis de Ambiente**
+   - Crie um arquivo `.env` na raiz do projeto copiando o exemplo:
+   - `cp .env.example .env` (ou manualmente no Windows)
+   - Edite o `.env` com suas credenciais do PostgreSQL e Groq Cloud.
+
+4. **Prepare o Banco de Dados**
+   - Certifique-se que o PostgreSQL está rodando e crie o banco:
+   ```sql
+   CREATE DATABASE ans_db;
+   ```
+
+5. **Execute o ETL (Carga de Dados)**
+   - Este passo baixará os dados da ANS, processará e salvará no banco.
+   ```bash
+   python main.py
+   ```
+
+6. **Inicie a API**
+   ```bash
+   uvicorn api.main:app --reload
+   # A API estará disponível em http://localhost:8000
+   # Documentação: http://localhost:8000/docs
+   ```
+
+7. **Inicie o Frontend**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   # O site estará disponível em http://localhost:5173
+   ```
 
 ### Configuração do Ambiente de IA
 
