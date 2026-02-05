@@ -15,6 +15,8 @@ O sistema foi projetado para realizar a integração, processamento, análise e 
 
 A solução implementada abrange desde a coleta automatizada de dados através de *web scraping* até a construção de uma interface web interativa com recursos avançados de análise, incluindo inteligência artificial para consultas em linguagem natural. O projeto foi desenvolvido utilizando **Python** para o backend e processamento de dados, **PostgreSQL** para armazenamento, **FastAPI** para a camada de API REST, e **Vue.js** para o frontend.
 
+![Dashboard Preview](docs/Dashboard.png)
+
 ---
 
 ## PARTE 1: INTEGRAÇÃO COM API DE DADOS ABERTOS DA ANS
