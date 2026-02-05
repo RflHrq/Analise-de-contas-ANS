@@ -161,6 +161,85 @@ def get_despesas_operadora(cnpj: str, db: Session = Depends(get_db)):
     return result
 
 # ==============================================================================
+# NOVA ROTA: Detalhes da Operadora (Por CNPJ)
+# ==============================================================================
+@app.get("/api/operadoras/{cnpj}", response_model=OperadoraSimples)
+def get_operadora_detalhes(cnpj: str, db: Session = Depends(get_db)):
+    """
+    Retorna os dados cadastrais de uma operadora específica.
+    """
+    query = text("""
+        SELECT registro_ans, cnpj, razao_social, modalidade, uf 
+        FROM operadoras 
+        WHERE cnpj = :cnpj
+    """)
+    result = db.execute(query, {'cnpj': cnpj}).fetchone()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Operadora não encontrada")
+        
+    return OperadoraSimples(
+        registro_ans=result.registro_ans,
+        cnpj=result.cnpj,
+        razao_social=result.razao_social,
+        modalidade=result.modalidade,
+        uf=result.uf
+    )
+
+from api.schemas import EstatisticasGerais
+
+# ==============================================================================
+# NOVA ROTA: Estatísticas Gerais (Agregado)
+# ==============================================================================
+@app.get("/api/estatisticas", response_model=EstatisticasGerais)
+def get_estatisticas(db: Session = Depends(get_db)):
+    """
+    Retorna estatísticas agregadas do sistema:
+    - Total de Despesas
+    - Média por Operadora
+    - Top 5 Operadoras (Maiores Despesas Totais)
+    """
+    
+    # 1. Totais e Média
+    kpi_query = text("SELECT SUM(valor) as total, COUNT(DISTINCT registro_ans) as qtd FROM despesas_eventos")
+    row = db.execute(kpi_query).fetchone()
+    
+    total = row.total or 0.0
+    qtd = row.qtd or 1
+    media = total / qtd if qtd > 0 else 0.0
+    
+    # 2. Top 5 Operadoras (Por Volume Total)
+    top_query = text("""
+        SELECT o.razao_social, SUM(d.valor) as total
+        FROM despesas_eventos d
+        JOIN operadoras o ON d.registro_ans = o.registro_ans
+        GROUP BY o.razao_social
+        ORDER BY total DESC
+        LIMIT 5
+    """)
+    top_rows = db.execute(top_query).fetchall()
+    top_5 = [{"razao_social": r.razao_social, "total": r.total} for r in top_rows]
+
+    # 3. Distribuição UF (Extra para preencher o schema)
+    uf_query = text("""
+        SELECT o.uf, SUM(d.valor) as total
+        FROM despesas_eventos d
+        JOIN operadoras o ON d.registro_ans = o.registro_ans
+        WHERE o.uf IS NOT NULL
+        GROUP BY o.uf
+        ORDER BY total DESC
+    """)
+    uf_rows = db.execute(uf_query).fetchall()
+    dist_uf = [{"uf": r.uf, "total": r.total} for r in uf_rows]
+    
+    return EstatisticasGerais(
+        total_mercado=total,
+        media_por_operadora=media,
+        top_5_operadoras=top_5,
+        distribuicao_uf=dist_uf
+    )
+
+# ==============================================================================
 # ROTA 3: Dashboard (Analytics)
 # ==============================================================================
 @app.get("/api/analytics/storytelling", response_model=DashboardStorytelling)

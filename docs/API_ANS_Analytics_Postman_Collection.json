@@ -1,0 +1,286 @@
+{
+    "info": {
+        "_postman_id": "c7a0c8f1-e8d9-4b1e-9691-281c1532dad5",
+        "name": "API ANS Analytics",
+        "description": "Coleção completa de endpoints para o projeto de Monitoramento de Despesas de Operadoras (ANS).\n\nInclui exemplos para todas as 6 rotas da API e endpoints de documentação.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Recursos da API",
+            "item": [
+                {
+                    "name": "1. Listar Operadoras",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8000/api/operadoras?page=1&limit=10&search=UNIMED",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8000",
+                            "path": [
+                                "api",
+                                "operadoras"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Número da página"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Itens por página"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "UNIMED",
+                                    "description": "Filtro por Razão Social ou CNPJ"
+                                }
+                            ]
+                        },
+                        "description": "Retorna uma lista paginada de operadoras. Suporta filtro textual (Fuzzy Search)."
+                    },
+                    "response": [
+                        {
+                            "name": "Exemplo de Sucesso (200 OK)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"total\": 1032,\n    \"page\": 1,\n    \"limit\": 10,\n    \"data\": [\n        {\n            \"registro_ans\": 314668,\n            \"cnpj\": \"00.000.000/0001-91\",\n            \"razao_social\": \"UNIMED BELO HORIZONTE\",\n            \"uf\": \"MG\",\n            \"modalidade\": \"Cooperativa Médica\"\n        }\n    ]\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "2. Detalhes da Operadora (Dados Cadastrais)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8000/api/operadoras/31466865000105",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8000",
+                            "path": [
+                                "api",
+                                "operadoras",
+                                "31466865000105"
+                            ]
+                        },
+                        "description": "Retorna os dados cadastrais completos de uma operadora específica."
+                    },
+                    "response": [
+                        {
+                            "name": "Exemplo de Sucesso (200 OK)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"registro_ans\": 314668,\n    \"cnpj\": \"31.466.865/0001-05\",\n    \"razao_social\": \"UNIMED BELO HORIZONTE COOPERATIVA DE TRABALHO MÉDICO\",\n    \"modalidade\": \"Cooperativa Médica\",\n    \"uf\": \"MG\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "3. Histórico de Despesas (Por CNPJ)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8000/api/operadoras/31466865000105/despesas",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8000",
+                            "path": [
+                                "api",
+                                "operadoras",
+                                "31466865000105",
+                                "despesas"
+                            ]
+                        },
+                        "description": "Retorna todo o histórico de lançamentos contábeis de uma operadora específica."
+                    },
+                    "response": [
+                        {
+                            "name": "Exemplo de Sucesso (200 OK)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "[\n    {\n        \"ano\": 2024,\n        \"trimestre\": 3,\n        \"conta_contabil\": \"4.1.1.4.01.01\",\n        \"descricao\": \"Internações\",\n        \"valor\": 1500000.50\n    }\n]"
+                        }
+                    ]
+                },
+                {
+                    "name": "4. Estatísticas Gerais (Agregado)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8000/api/estatisticas",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8000",
+                            "path": [
+                                "api",
+                                "estatisticas"
+                            ]
+                        },
+                        "description": "Retorna estatísticas agregadas do sistema: Total de Despesas, Média por Operadora, Top 5 e Distribuição por UF."
+                    },
+                    "response": [
+                        {
+                            "name": "Exemplo de Sucesso (200 OK)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"total_mercado\": 521000000.00,\n    \"media_por_operadora\": 154000.00,\n    \"top_5_operadoras\": [\n        {\n            \"razao_social\": \"UNIMED BELO HORIZONTE\",\n            \"total\": 50000000.00\n        }\n    ],\n    \"distribuicao_uf\": [\n        {\n            \"uf\": \"SP\",\n            \"total\": 200000000.00\n        }\n    ]\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "5. Dashboard Storytelling (Analytics)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8000/api/analytics/storytelling",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8000",
+                            "path": [
+                                "api",
+                                "analytics",
+                                "storytelling"
+                            ]
+                        },
+                        "description": "Endpoint agregador que retorna todos os KPIs para o Dashboard."
+                    }
+                },
+                {
+                    "name": "6. Chatbot IA (Ask)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"question\": \"Quais operadoras tiveram mais despesas em São Paulo no último ano?\"\r\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8000/api/ai/ask",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8000",
+                            "path": [
+                                "api",
+                                "ai",
+                                "ask"
+                            ]
+                        },
+                        "description": "Envia uma pergunta em linguagem natural para a IA processar."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Documentação & Meta",
+            "item": [
+                {
+                    "name": "Swagger UI (Docs)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8000/docs",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8000",
+                            "path": [
+                                "docs"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "ReDoc (Docs)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8000/redoc",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8000",
+                            "path": [
+                                "redoc"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "OpenAPI Spec (JSON)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8000/openapi.json",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8000",
+                            "path": [
+                                "openapi.json"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
