@@ -77,14 +77,18 @@ DB_NAME = os.getenv("DB_NAME", "ans_db")
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Configuração do Usuário Leitor (Para a API)
-# Tenta carregar do .env primeiro (DATABASE_URL), senão monta manual (Fallback inseguro removido)
+# 1. Tenta DATABASE_URL_READER específico do .env
+# 2. Se não existir, tenta DATABASE_URL do .env (Compatibilidade)
+# 3. Se não existir, usa a mesma conexão de escrita (Fallback dev/local)
 from dotenv import load_dotenv
 load_dotenv()
 
-DATABASE_URL_READER = os.getenv("DATABASE_URL")
+DATABASE_URL_READER = os.getenv("DATABASE_URL_READER")
 
 if not DATABASE_URL_READER:
-    # Fallback apenas para não quebrar em dev local se .env falhar, mas avisando
-    print("⚠️ AVISO: DATABASE_URL não encontrada no .env. Usando configuração padrão (pode falhar se senha estiver errada).")
-    # Tenta usar a mesma de escrita como fallback temporário
+    DATABASE_URL_READER = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL_READER:
+    # Fallback final: usa a string construída manualmente acima
+    print("⚠️ AVISO: DATABASE_URL_READER/DATABASE_URL não encontradas no .env. Usando config padrão.")
     DATABASE_URL_READER = DATABASE_URL

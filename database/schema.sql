@@ -73,9 +73,14 @@ CREATE TABLE despesas_agregadas (
 -- ============================================================================
 
 -- 1. Cria o usuário específico (se não existir)
--- Tenta limpar antes (O loader python vai ignorar erros se user nao existir)
+
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = 'reader';
+
+-- Agora sim podemos deletar sem erro de "dependência" ou "sessão ativa"
 DROP OWNED BY reader;
 DROP ROLE IF EXISTS reader;
+
+-- Cria do zero com a senha correta
 CREATE ROLE reader WITH LOGIN PASSWORD '{DB_READER_PWD}';
 
 -- 2. Garante que ele pode conectar no banco

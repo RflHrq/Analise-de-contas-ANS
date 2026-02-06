@@ -103,14 +103,15 @@ class DataEnricher:
         
         return df
 
-    def process(self):
+    def process(self, save_to_disk=True):
         """
         Executa o enriquecimento de dados:
         1. Carrega dados financeiros consolidados.
         2. Baixa e carrega dados cadastrais (CADOP).
         3. Cruza informações (Join) pelo RegistroANS.
         4. Valida CNPJs.
-        5. Salva arquivo final enriquecido.
+        5. Opcionalmente salva arquivo final enriquecido.
+        6. Retorna DataFrame enriquecido.
         """
         self.logger.info("Iniciando Enriquecimento de Dados...")
         
@@ -185,14 +186,31 @@ class DataEnricher:
         self.logger.info(f"Qualidade dos Dados: {invalidos} registros com CNPJ inválido ou ausente de {total} ({invalidos/total:.1%}).")
 
         # --- PASSO 7: Salvar Resultado ---
-        self.logger.info(f"Salvando arquivo final: {self.enriched_file}")
+        if save_to_disk:
+            self.logger.info(f"Salvando arquivo final: {self.enriched_file}")
+            
+            try:
+                # Delete manual antecipado (Fix para Windows/Lock)
+                if os.path.exists(self.enriched_file):
+                    try:
+                        os.remove(self.enriched_file)
+                        # Pequeno delay para garantir que o SO liberou o arquivo
+                        import time
+                        time.sleep(0.5)
+                    except OSError:
+                        pass
+
+                # [CORREÇÃO] Abre o arquivo manualmente (bypass pandas internal open)
+                # A debug script provou que open() funciona.
+                with open(self.enriched_file, 'w', encoding='utf-8-sig', newline='') as f:
+                    df_merged.to_csv(f, index=False, sep=';')
+                    
+                self.logger.info("Enriquecimento concluído com sucesso!")
+            except PermissionError:
+                self.logger.critical("ERRO DE PERMISSÃO: O arquivo 'despesas_enriquecidas.csv' está aberto no Excel.")
+                self.logger.critical("   -> FECHE O ARQUIVO e rode novamente.")
+            except Exception as e:
+                self.logger.error(f"Erro ao salvar arquivo: {e}")
+                raise
         
-        try:
-            df_merged.to_csv(self.enriched_file, index=False, sep=';', encoding='utf-8-sig')
-            self.logger.info("Enriquecimento concluído com sucesso!")
-        except PermissionError:
-            self.logger.critical("ERRO DE PERMISSÃO: O arquivo 'despesas_enriquecidas.csv' está aberto no Excel.")
-            self.logger.critical("   -> FECHE O ARQUIVO e rode novamente.")
-        except Exception as e:
-            self.logger.error(f"Erro ao salvar arquivo: {e}")
-            raise
+        return df_merged

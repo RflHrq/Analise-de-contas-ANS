@@ -15,23 +15,28 @@ class DataAggregator:
         self.input_file = ENRICHED_FILE
         self.output_file = AGGREGATED_FILE
 
-    def process(self):
+    def process(self, df_input=None):
         """
         Executa o fluxo de agregação:
-        1. Lê o arquivo enriquecido.
+        1. Lê o arquivo enriquecido (ou usa DataFrame memória).
         2. Calcula totais por trimestre.
         3. Gera estatísticas gerais (Média, Desvio Padrão).
         4. Salva o resultado agregado.
         """
         self.logger.info("Iniciando Agregação Estatística...")
-
-        if not os.path.exists(self.input_file):
-            self.logger.error("Arquivo enriquecido não encontrado.")
-            return
+        
+        cols_needed = ['RegistroANS', 'RazaoSocial', 'UF', 'Modalidade', 'Ano', 'Trimestre', 'Valor Despesas']
 
         try:
-            cols_needed = ['RegistroANS', 'RazaoSocial', 'UF', 'Modalidade', 'Ano', 'Trimestre', 'Valor Despesas']
-            df = pd.read_csv(self.input_file, sep=';', encoding='utf-8-sig', usecols=cols_needed)
+            if df_input is None:
+                if not os.path.exists(self.input_file):
+                    self.logger.error("Arquivo enriquecido não encontrado.")
+                    return
+                df = pd.read_csv(self.input_file, sep=';', encoding='utf-8-sig', usecols=cols_needed)
+            else:
+                self.logger.info("Usando DataFrame em memória para agregação.")
+                # Filtra apenas colunas necessárias e protege o original
+                df = df_input[cols_needed].copy()
             
             df['Valor Despesas'] = pd.to_numeric(df['Valor Despesas'], errors='coerce').fillna(0)
 

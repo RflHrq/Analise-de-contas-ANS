@@ -1,11 +1,13 @@
 <template>
+    <SystemError v-if="error" />
+
     <Teleport to="body">
-      <div v-if="loading" class="loading-overlay">
+      <div v-if="loading && !error" class="loading-overlay">
           <div class="spinner-border text-primary mb-2" style="width: 3rem; height: 3rem;" role="status"></div>
           <p class="text-muted fw-bold">Carregando dados financeiros...</p>
       </div>
     </Teleport>
-  <div class="container py-5">
+  <div class="container py-5" v-if="!error">
     
     <div class="d-flex justify-content-between align-items-end mb-5">
         <div class="text-start">
@@ -82,6 +84,7 @@ import OperatorsTable from './components/OperatorsTable.vue';
 import OperatorModal from './components/OperatorModal.vue';
 import ConsistencyClub from './components/ConsistencyClub.vue';
 import AIChatWidget from './components/AIChatWidget.vue';
+import SystemError from './components/SystemError.vue';
 
 // Gerenciamento de Tema (Dark/Light)
 const { isDarkMode, toggleTheme } = useTheme();

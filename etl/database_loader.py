@@ -81,10 +81,10 @@ class DatabaseLoader:
         #    Usamos pd.to_numeric com errors='coerce' para evitar quebra em lixo
         return pd.to_numeric(clean, errors='coerce').fillna(0).astype(int).astype(str)
 
-    def process(self):
+    def process(self, df_input=None):
         """
         Orquestra o pipeline de carga:
-        1. Lê o arquivo CSV final (Enriquecido).
+        1. Lê o arquivo CSV final (ou recebe DataFrame).
         2. Padroniza IDs (RegistroANS).
         3. Carrega Operadoras (Dimensão).
         4. Carrega Despesas (Fato).
@@ -92,13 +92,17 @@ class DatabaseLoader:
         """
         self.logger.info("Iniciando Pipeline de Carga (ETL -> SQL)...")
 
-        if not os.path.exists(ENRICHED_FILE):
-            self.logger.error("Arquivo enriquecido não encontrado.")
-            return
-
         try:
-            self.logger.info("Lendo arquivo enriquecido...")
-            df = pd.read_csv(ENRICHED_FILE, sep=';', encoding='utf-8-sig', dtype=str)
+            if df_input is None:
+                if not os.path.exists(ENRICHED_FILE):
+                    self.logger.error("Arquivo enriquecido não encontrado.")
+                    return
+                
+                self.logger.info("Lendo arquivo enriquecido...")
+                df = pd.read_csv(ENRICHED_FILE, sep=';', encoding='utf-8-sig', dtype=str)
+            else:
+                self.logger.info("Usando DataFrame em memória para carga.")
+                df = df_input.copy() # Copia para segurança
             
             # --- PADRONIZAÇÃO CRÍTICA DO ID ---
             df['RegistroANS'] = self._standardize_id(df['RegistroANS'])

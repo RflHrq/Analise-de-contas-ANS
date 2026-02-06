@@ -61,76 +61,90 @@ class DataConsolidator:
         """
         self.logger.info("Iniciando consolidação...")
         
+        # Robust Delete (Fix para Windows)
         if os.path.exists(self.output_file):
-            os.remove(self.output_file)
+            try:
+                os.remove(self.output_file)
+                import time
+                time.sleep(0.5)
+            except OSError:
+                pass
         
         header_written = False
         files_processed = 0
 
-        for root, dirs, files in os.walk(PROCESSED_DIR):
-            for file in files:
-                if not self._is_valid_file(file): continue
-                if file.endswith('.zip'): continue
+        # [OTIMIZAÇÃO] Abre o arquivo UMA VEZ e mantém aberto.
+        # Isso evita Race Conditions de File Lock no Windows e acelera o processo.
+        try:
+            with open(self.output_file, 'w', encoding='utf-8-sig', newline='') as f_out:
+                for root, dirs, files in os.walk(PROCESSED_DIR):
+                    for file in files:
+                        if not self._is_valid_file(file): continue
+                        if file.endswith('.zip'): continue
 
-                filepath = os.path.join(root, file)
-                trimestre, ano = self._extract_date_info(filepath)
-                
-                try:
-                    encoding = self._detect_encoding(filepath)
-                    sep = self._identify_separator(filepath, encoding)
-                    
-                    chunks = pd.read_csv(
-                        filepath, sep=sep, encoding=encoding, 
-                        chunksize=CHUNK_SIZE, dtype=str, on_bad_lines='skip'
-                    )
-
-                    for chunk in chunks:
-                        chunk.rename(columns=COLUMN_MAPPING, inplace=True)
-                        if "Conta" not in chunk.columns: continue
-                        chunk["Conta"] = chunk["Conta"].astype(str).str.strip()
+                        filepath = os.path.join(root, file)
+                        trimestre, ano = self._extract_date_info(filepath)
                         
-                        mask = chunk["Conta"].str.startswith(tuple(ACCOUNT_PREFIX_FILTER))
-                        chunk = chunk[mask]
-                        chunk = chunk[chunk["Conta"].str.len() == 9]
+                        try:
+                            encoding = self._detect_encoding(filepath)
+                            sep = self._identify_separator(filepath, encoding)
+                            
+                            chunks = pd.read_csv(
+                                filepath, sep=sep, encoding=encoding, 
+                                chunksize=CHUNK_SIZE, dtype=str, on_bad_lines='skip'
+                            )
 
-                        if chunk.empty or "Valor Despesas" not in chunk.columns: continue
+                            for chunk in chunks:
+                                chunk.rename(columns=COLUMN_MAPPING, inplace=True)
+                                if "Conta" not in chunk.columns: continue
+                                chunk["Conta"] = chunk["Conta"].astype(str).str.strip()
+                                
+                                mask = chunk["Conta"].str.startswith(tuple(ACCOUNT_PREFIX_FILTER))
+                                chunk = chunk[mask]
+                                chunk = chunk[chunk["Conta"].str.len() == 9]
+
+                                if chunk.empty or "Valor Despesas" not in chunk.columns: continue
 
 
-                        if "Ano" not in chunk.columns and ano: chunk["Ano"] = ano
-                        if "Trimestre" not in chunk.columns and trimestre: chunk["Trimestre"] = trimestre
-                        
-                        for col in FINAL_COLUMNS:
-                            if col not in chunk.columns: chunk[col] = ""
+                                if "Ano" not in chunk.columns and ano: chunk["Ano"] = ano
+                                if "Trimestre" not in chunk.columns and trimestre: chunk["Trimestre"] = trimestre
+                                
+                                for col in FINAL_COLUMNS:
+                                    if col not in chunk.columns: chunk[col] = ""
 
-                        df_final = chunk[FINAL_COLUMNS].copy()
+                                df_final = chunk[FINAL_COLUMNS].copy()
 
-                        df_final["Valor Despesas"] = (
-                            df_final["Valor Despesas"]
-                            .astype(str).str.strip()
-                            .str.replace('.', '', regex=False)
-                            .str.replace(',', '.', regex=False)
-                        )
-                        df_final["Valor Despesas"] = pd.to_numeric(df_final["Valor Despesas"], errors='coerce')
-                        df_final = df_final[(df_final["Valor Despesas"].notnull()) & (df_final["Valor Despesas"] != 0)]
-                        
-                        if "RegistroANS" in df_final.columns:
-                            df_final["RegistroANS"] = df_final["RegistroANS"].astype(str).str.replace(r'\.0$', '', regex=True)
+                                df_final["Valor Despesas"] = (
+                                    df_final["Valor Despesas"]
+                                    .astype(str).str.strip()
+                                    .str.replace('.', '', regex=False)
+                                    .str.replace(',', '.', regex=False)
+                                )
+                                df_final["Valor Despesas"] = pd.to_numeric(df_final["Valor Despesas"], errors='coerce')
+                                df_final = df_final[(df_final["Valor Despesas"].notnull()) & (df_final["Valor Despesas"] != 0)]
+                                
+                                if "RegistroANS" in df_final.columns:
+                                    df_final["RegistroANS"] = df_final["RegistroANS"].astype(str).str.replace(r'\.0$', '', regex=True)
 
-                        if df_final.empty: continue
+                                if df_final.empty: continue
 
-                        df_final.to_csv(
-                            self.output_file, mode='a', header=not header_written, 
-                            index=False, sep=';', encoding='utf-8-sig',
-                            quoting=csv.QUOTE_NONNUMERIC
-                        )
-                        header_written = True
-                    
-                    files_processed += 1
-                    if files_processed % 10 == 0:
-                        self.logger.info(f"   ... processados: {files_processed}")
+                                # Escreve no handle aberto
+                                df_final.to_csv(
+                                    f_out, header=not header_written, 
+                                    index=False, sep=';', 
+                                    quoting=csv.QUOTE_NONNUMERIC
+                                )
+                                header_written = True
+                            
+                            files_processed += 1
+                            if files_processed % 10 == 0:
+                                self.logger.info(f"   ... processados: {files_processed}")
 
-                except Exception as e:
-                    self.logger.error(f"Erro no arquivo {file}: {e}")
+                        except Exception as e:
+                            self.logger.error(f"Erro no arquivo {file}: {e}")
+        except Exception as e:
+            self.logger.critical(f"Erro fatal na consolidação: {e}")
+            raise
 
         self.logger.info(f"Consolidação Finalizada! {files_processed} arquivos processados.")
         

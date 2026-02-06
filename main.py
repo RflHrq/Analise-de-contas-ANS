@@ -91,21 +91,27 @@ def main():
         logger.info("Etapa 4: Enriquecimento de Dados (Cadastral)...")
         
         enricher = DataEnricher()
-        enricher.process()
+        # [MODIFICAÇÃO] Processamento em memória para evitar erro de disco e lock do Windows
+        # save_to_disk=False evita criar o arquivo intermediário gigante que causava OSError
+        df_enriched = enricher.process(save_to_disk=False)
 
-        # 5. Etapa de Agregação (Summarization)
-        logger.info("-" * 40)
-        logger.info("Etapa 5: Agregação de Despesas (KPIs)...")
-        
-        aggregator = DataAggregator()
-        aggregator.process()
+        if df_enriched is not None and not df_enriched.empty:
+            # 5. Etapa de Agregação (Summarization)
+            logger.info("-" * 40)
+            logger.info("Etapa 5: Agregação de Despesas (KPIs)...")
+            
+            aggregator = DataAggregator()
+            aggregator.process(df_input=df_enriched) # Passa o DF direto
 
-        logger.info("-" * 40)
-        logger.info("Etapa 6: Carga no Banco de Dados (SQL)...")
-        
-        loader = DatabaseLoader()
-        loader.init_db() # Cria tabelas
-        loader.process() # Insere dados
+            logger.info("-" * 40)
+            logger.info("Etapa 6: Carga no Banco de Dados (SQL)...")
+            
+            loader = DatabaseLoader()
+            loader.init_db() # Cria tabelas
+            loader.process(df_input=df_enriched) # Passa o DF direto
+        else:
+            logger.error("Falha no Enriquecimento: DataFrame vazio ou nulo.")
+            sys.exit(1)
 
         # 6. Resumo Final
         elapsed_time = time.time() - start_time
