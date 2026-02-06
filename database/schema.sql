@@ -76,7 +76,7 @@ CREATE TABLE despesas_agregadas (
 -- Tenta limpar antes (O loader python vai ignorar erros se user nao existir)
 DROP OWNED BY reader;
 DROP ROLE IF EXISTS reader;
-CREATE ROLE reader WITH LOGIN PASSWORD '3z#S&L@2$tP5nK!gR2jY7q*O';
+CREATE ROLE reader WITH LOGIN PASSWORD '{DB_READER_PWD}';
 
 -- 2. Garante que ele pode conectar no banco
 GRANT CONNECT ON DATABASE postgres TO reader; 

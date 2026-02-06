@@ -34,9 +34,19 @@ class DatabaseLoader:
             sql_script = f.read()
             
         try:
+
             # AUTOCOMMIT resolve problemas de transação abortada em comandos DDL/Role
             with self.engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
-                for statement in sql_script.split(';'):
+                # INJEÇÃO DE CREDENCIAIS (SEGURANÇA):
+                # Substitui o placeholder {DB_READER_PWD} pela senha real do .env
+                # Se não houver variavel, usa uma default (apenas para evitar crash em dev, mas avisa)
+                db_pwd = os.getenv("DB_READER_PWD", "3z#S&L@2$tP5nK!gR2jY7q*O") 
+                if "DB_READER_PWD" not in os.environ:
+                    self.logger.warning("⚠️  Senha do Reader não definida no .env. Usando default (INSEGURO PARA PROD).")
+                
+                sql_script_formatted = sql_script.replace("{DB_READER_PWD}", db_pwd)
+
+                for statement in sql_script_formatted.split(';'):
                     if statement.strip():
                         try:
                             conn.execute(text(statement))

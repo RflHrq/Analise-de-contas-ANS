@@ -174,6 +174,50 @@ A decisão foi utilizar **In-Memory Sort** usando o algoritmo Quicksort nativo d
 
 O resultado final é salvo em `despesas_agregadas.csv` conforme definido em `config.py`. O código usa `encoding='utf-8-sig'` para garantir que acentuações em nomes de empresas sejam renderizados corretamente ao abrir no Microsoft Excel. O arquivo é então automaticamente compactado em `Teste_Rafael_Henrique_dos_Santos_Simao.zip` através da classe `FileCompressor`, gerando o arquivo final de entrega na pasta `data/processed/`.
 
+### 2.5 ARQUITETURA DA ETAPA ETL
+A execução de todas as etapas do projeto é orquestrada pelo arquivo `main.py`. Para atender aos requisitos do projeto, foi desenvolvido um pipeline de ETL seguindo os princípios de Clean Code e SOLID, utilizando a Programação Orientada a Objetos (POO) para garantir modularidade, facilidade de manutenção e escalabilidade do pipeline de dados.
+
+**Orquestração e Fluxo Principal**
+
+- **Main (Orquestrador):** Atua como o "cérebro" do pipeline. Ele não contém lógica de processamento de dados, mas gerencia a sequência de execução, o tratamento de erros global e a sinalização de status (exit codes) para ambientes de CI/CD.
+
+- **Logging Centralizado:** Todas as classes utilizam uma instância de logging configurada no Main, garantindo rastreabilidade total do processo.
+
+- **Núcleo do Pipeline (ETL Core)**
+Esta camada contém as classes que possuem estado (atributos) e executam as regras de negócio específicas da ANS:
+
+- **ANSScraper:** Gerencia a lógica de navegação no portal da ANS. Utiliza expressões regulares (Regex) para identificar trimestres e coordena o download de arquivos ZIP.
+
+- **FileHandler:** Responsável pela interface com o Sistema de Operacional (OS). Gerencia a criação de diretórios de trabalho e a extração segura de arquivos compactados.
+
+- **DataConsolidator:** Especializado em normalização. Lida com variações de encoding e separadores de arquivos CSV/TXT brutos, unificando-os em um dataset padronizado.
+
+- **DataEnricher:** Realiza o cruzamento de dados (Join). Enriquece os dados financeiros com informações cadastrais das operadoras (CADOP), garantindo a integridade dos dados através de validações algorítmicas.
+
+- **DataAggregator:** Camada de inteligência estatística. Calcula KPIs como médias trimestrais e desvios padrão para análise financeira.
+
+- **DatabaseLoader:** Camada de persistência. Implementa uma estratégia ELT, onde além de carregar os dados no PostgreSQL, utiliza o poder do SQL para realizar agregações complexas diretamente no banco de dados.
+
+**Classes Utilitárias (Helpers)**
+Para evitar a duplicação de código (DRY - Don't Repeat Yourself), funcionalidades genéricas foram isoladas em classes utilitárias que utilizam métodos estáticos (@staticmethod).
+
+- **HttpClient:** Um wrapper sobre a biblioteca requests. Implementa resiliência através de estratégias de Retry automático, tratamento de timeouts e gestão de sessões.
+
+- **CNPJValidator:** Implementa o algoritmo de Módulo 11 para validação de documentos brasileiros. É uma classe puramente funcional, garantindo que apenas dados de operadoras com registros válidos avancem no pipeline.
+
+- **FileCompressor:** Centraliza a lógica de compressão de arquivos de saída, facilitando a portabilidade dos resultados finais do processo.
+
+Abaixo, segue a arquitetura do pipeline de ETL:
+![ETL Architecture](docs/Class.png)
+
+**Por que essa estrutura foi escolhida?**
+
+- **Separação de Preocupações (SoC):** As classes de infraestrutura (como rede e arquivos) não conhecem as regras de negócio da ANS, permitindo que sejam reutilizadas em outros contextos.
+
+- **Manutenibilidade:** Se a ANS mudar o formato de um arquivo ou o endereço do site, apenas uma classe específica precisará ser alterada.
+
+- **Testabilidade:** Cada componente pode ser testado isoladamente (Unit Tests), garantindo que o validador de CNPJ, por exemplo, funcione perfeitamente independente do banco de dados estar online ou não.
+
 ---
 
 ## PARTE 3: BANCO DE DADOS E ANÁLISE
@@ -181,6 +225,10 @@ O resultado final é salvo em `despesas_agregadas.csv` conforme definido em `con
 ### 3.1 MODELAGEM E DECISÕES DE SCHEMA
 
 O banco de dados foi implementado em **PostgreSQL** seguindo uma arquitetura híbrida de **Star Schema** (Schema Estrela), balanceando performance de escrita e leitura. A modelagem consiste em uma tabela dimensão `operadoras` contendo dados cadastrais únicos e imutáveis de cada operadora, e uma tabela fato `despesas_eventos` contendo os lançamentos contábeis detalhados com chave estrangeira `registro_ans` apontando para a dimensão.
+
+O Diagrama de Entidade Relacionamento (DER) do banco de dados é o seguinte:
+![DER](docs/Der.png)
+
 
 #### Trade-off: Normalização versus Desnormalização
 

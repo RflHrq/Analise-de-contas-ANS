@@ -99,8 +99,21 @@ const emit = defineEmits(['search', 'changePage', 'select']);
 const localSearch = ref('');
 
 // Dispara a busca
+// Dispara a busca com tratamento de CNPJ
 const doSearch = () => {
-  emit('search', localSearch.value);
+  let term = localSearch.value.trim();
+  
+  // Tratamento Inteligente:
+  // Se o termo NÃO contém letras (ex: "32.123/0001-00" ou "12 345"), 
+  // assumimos que é um código numérico (CNPJ/ANS) e removemos a formatação (espaços, pontos, etc).
+  // Se contém letras (ex: "Unimed RJ"), mantemos como está.
+  const hasLetters = /[a-zA-Z]/.test(term);
+  
+  if (!hasLetters && term.length > 0) {
+      term = term.replace(/\D/g, ''); // Remove tudo que não for dígito
+  }
+
+  emit('search', term);
 };
 </script>
 
