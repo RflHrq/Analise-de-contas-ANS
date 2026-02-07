@@ -1,9 +1,12 @@
 import axios from 'axios';
 
 // Configuração da instância do Axios para comunicação com a API Backend
+const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+console.log('🔌 Conectando à API em:', baseURL); // Debug para verificar em produção
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api', // URL via variável de ambiente (Vercel) ou Local
-    timeout: 10000,                        // Timeout de 10 segundos
+    baseURL: baseURL, // URL via variável de ambiente (Vercel) ou Local
+    timeout: 10000,   // Timeout de 10 segundos
 });
 
 export default {
