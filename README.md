@@ -347,7 +347,8 @@ A tabela renderiza apenas 10-20 linhas no DOM por vez, com o restante dos dados 
 
 #### Tratamento de Erros e Estados de Loading
 
-A implementação utiliza variáveis reativas (`isLoading`, `error`) para controlar a UI durante requisições assíncronas. Durante o loading, são exibidos *skeleton screens* ou *spinners*, evitando que o usuário interaja com uma tela vazia. Erros de rede são tratados através de interceptors do Axios, mostrando toasts informativos. Estados de dados vazios ("Nenhum resultado encontrado para 'X'") possuem UIs dedicadas que instruem o usuário a modificar o filtro, ao invés de mostrar apenas uma tabela em branco que deixa o usuário confuso.
+A implementação utiliza variáveis reativas (`isLoading`, `error`) para controlar a UI durante requisições assíncronas. Durante o loading, são exibidos *skeleton screens* ou *spinners*, evitando que o usuário interaja com uma tela vazia.
+Erros leves de rede são tratados através de toasts informativos. **Erros críticos** (como API offline) ativam o componente `SystemError`, uma barreira visual que impede o uso da aplicação até que a conexão seja restabelecida. Estados de dados vazios ("Nenhum resultado encontrado para 'X'") possuem UIs dedicadas que instruem o usuário a modificar o filtro, ao invés de mostrar apenas uma tabela em branco que deixa o usuário confuso.
 
 ### 4.4 COMPONENTES DE VISUALIZAÇÃO
 
@@ -560,6 +561,7 @@ O sistema oferece seis componentes de visualização que compõem um dashboard a
 5.  **Operators Table (Explorador Principal)**: Tabela completa, paginada e pesquisável contendo todas as operadoras. Implementa busca textual fuzzy estilo Google que procura simultaneamente em CNPJ e Razão Social. Serve como ponto de entrada principal para drill-down em operadoras específicas.
 6.  **Operator Modal (Drill-Down Granular)**: Modal de detalhamento que abre ao clicar em qualquer operadora. Exibe dados cadastrais completos (CNPJ, Registro ANS, UF, Modalidade) e tabela de eventos contábeis com tradução automática dos códigos de conta para nomes legíveis (transformando "4.1.1.4" em "Internações - Médico-Hospitalar"), permitindo análise até o nível de lançamento individual.
 7.  **AI Chat Widget (Análise Livre)**: Widget flutuante posicionado no canto inferior direito que permite fazer perguntas em linguagem natural sobre os dados. Democratiza o acesso à análise permitindo que usuários não técnicos façam consultas complexas sem conhecer SQL.
+8.  **System Error Screen (Falha Crítica)**: Tela de bloqueio total que intercepta falhas catastróficas de conexão com o backend (API offline ou erro 500). Substitui a interface por um feedback visual claro com botão de "Tentar Novamente", evitando que o usuário interaja com uma aplicação em estado inconsistente.
 
 ## Como executar localmente?
 

@@ -83,7 +83,7 @@
 
 <script setup>
 import { ref, nextTick } from 'vue';
-import axios from 'axios';
+import api from '../services/api';
 
 // Estado das Mensagens
 const messages = ref([]);
@@ -120,8 +120,8 @@ const sendMessage = async () => {
     scrollToBottom();
 
     try {
-        // 2. Chama API Backend (Analista SQL)
-        const res = await axios.post('http://127.0.0.1:8000/api/ai/ask', { question });
+        // 2. Chama API Backend (Analista SQL) via Service Centralizado
+        const res = await api.askAI(question);
         
         const result = res.data;
 

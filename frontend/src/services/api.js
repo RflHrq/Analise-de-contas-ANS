@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configuração da instância do Axios para comunicação com a API Backend
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api', // URL base da API
+    baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api', // URL via variável de ambiente (Vercel) ou Local
     timeout: 10000,                        // Timeout de 10 segundos
 });
 
@@ -33,5 +33,13 @@ export default {
      */
     getOperatorExpenses(cnpj) {
         return api.get(`/operadoras/${cnpj}/despesas`);
+    },
+
+    /**
+     * Envia uma pergunta para o Analista de IA.
+     * @param {string} question - Pergunta em linguagem natural
+     */
+    askAI(question) {
+        return api.post('/ai/ask', { question });
     }
 };

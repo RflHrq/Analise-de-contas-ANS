@@ -81,7 +81,7 @@ DROP OWNED BY reader;
 DROP ROLE IF EXISTS reader;
 
 -- Cria do zero com a senha correta
-CREATE ROLE reader WITH LOGIN PASSWORD '{DB_READER_PWD}';
+CREATE ROLE reader WITH LOGIN PASSWORD 'AnsSemMedo2025';
 
 -- 2. Garante que ele pode conectar no banco
 GRANT CONNECT ON DATABASE postgres TO reader; 
