@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+# Carrega variáveis de ambiente imediatamente
+load_dotenv()
 
 # --- 1. INFRAESTRUTURA DE DIRETÓRIOS ---
 BASE_DIR = os.getcwd()
@@ -74,14 +78,15 @@ DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "ans_db")
 
 # URL de Escrita (ETL)
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Prioridade: 1. Variável de Ambiente (Cloud/Prod) | 2. Montagem Local (Dev)
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Configuração do Usuário Leitor (Para a API)
 # 1. Tenta DATABASE_URL_READER específico do .env
 # 2. Se não existir, tenta DATABASE_URL do .env (Compatibilidade)
 # 3. Se não existir, usa a mesma conexão de escrita (Fallback dev/local)
-from dotenv import load_dotenv
-load_dotenv()
 
 DATABASE_URL_READER = os.getenv("DATABASE_URL_READER")
 
