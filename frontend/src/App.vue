@@ -12,7 +12,7 @@
     <div class="d-flex justify-content-between align-items-end mb-5">
         <div class="text-start">
             <div class="d-flex align-items-center gap-2 mb-1">
-                <span style="font-size: 1.5rem;">📊</span>
+                <img src="/logo.png" alt="ANS Logo" style="height: 40px; width: auto;" />
                 <h2 class="fw-bold mb-0" style="letter-spacing: -1px;">Analise de contas da ANS</h2>
             </div>
             <p class="text-muted mb-0 small">Dashboard com dados de Despesas com Eventos/Sinistros</p>

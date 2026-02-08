@@ -1,7 +1,29 @@
 import axios from 'axios';
 
-// Configuração da instância do Axios para comunicação com a API Backend
-const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+// Helper para garantir URL válida (com protocolo e /api)
+const getBaseUrl = () => {
+    let url = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+
+    // Adiciona protocolo se faltar
+    if (!url.startsWith('http')) {
+        url = `https://${url}`;
+    }
+
+    // Garante que não termina com barra para padronizar
+    if (url.endsWith('/')) {
+        url = url.slice(0, -1);
+    }
+
+    // Adiciona /api se o usuário esqueceu (heuristic)
+    // Se a URL não terminar com /api, adicionamos.
+    if (!url.endsWith('/api')) {
+        url = `${url}/api`;
+    }
+
+    return url;
+};
+
+const baseURL = getBaseUrl();
 console.log('🔌 Conectando à API em:', baseURL); // Debug para verificar em produção
 
 const api = axios.create({

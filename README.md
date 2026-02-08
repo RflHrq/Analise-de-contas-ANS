@@ -6,6 +6,7 @@
 ![Badge PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.1-316bad?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Badge FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-007acc?style=for-the-badge&logo=fastapi&logoColor=white)
 ![Badge Vue.js](https://img.shields.io/badge/Vue.js-3.4.15-41b883?style=for-the-badge&logo=vue.js&logoColor=white)
+![Badge Docker](https://img.shields.io/badge/Docker-20.10.17-007acc?style=for-the-badge&logo=docker&logoColor=white)
 ![Badge Chart.js](https://img.shields.io/badge/Chart.js-4.4.0-2c3e50?style=for-the-badge&logo=chart.js&logoColor=white)
 ![Badge AI](https://img.shields.io/badge/AI-Chat-007acc?style=for-the-badge&logo=ai&logoColor=white)
 
@@ -14,6 +15,8 @@
 O sistema foi projetado para realizar a integração, processamento, análise e visualização de dados públicos da **Agência Nacional de Saúde Suplementar (ANS)**, com foco em despesas assistenciais de operadoras de planos de saúde.
 
 A solução implementada abrange desde a coleta automatizada de dados através de *web scraping* até a construção de uma interface web interativa com recursos avançados de análise, incluindo inteligência artificial para consultas em linguagem natural. O projeto foi desenvolvido utilizando **Python** para o backend e processamento de dados, **PostgreSQL** para armazenamento, **FastAPI** para a camada de API REST, e **Vue.js** para o frontend.
+
+Link do sistema: https://ans-despesas.vercel.app/
 
 ![Dashboard Preview](docs/Dashboard.png)
 
@@ -550,7 +553,34 @@ A paleta foi cuidadosamente escolhida para garantir acessibilidade (contraste WC
 *   **Light Mode**: Backgrounds brancos (#FFFFFF), textos cinza escuro (#1F2937), acentos azuis (#3B82F6), bordas cinza claro (#E5E7EB).
 *   **Dark Mode**: Backgrounds cinza carvão (#1F2937 e #111827), textos brancos (#FFFFFF) e cinza claro (#D1D5DB), acentos azuis mais brilhantes (#60A5FA), bordas cinza médio com transparência.
 
-### 5.4 VISÃO GERAL DOS DASHBOARDS
+### 5.4 IMPLEMENTAÇÃO DOCKER
+
+O projeto utiliza **Docker** e **Docker Compose** para garantir portabilidade (`Write Once, Run Anywhere`), isolamento de dependências e facilidade de configuração do ambiente de desenvolvimento.
+
+A arquitetura de containers é composta por serviços orquestrados no arquivo `docker-compose.yml`:
+
+1.  **db (Banco de Dados)**: Imagem oficial `postgres:16`, configurada com volumes persistentes (`postgres_data`) para garantir que os dados sobrevivam ao reinício dos containers.
+2.  **backend (API)**: Container customizado construído a partir do `Dockerfile.backend` (base `python:3.11-slim`). Expõe a porta 8000 e conecta-se ao banco através da rede interna do Docker.
+3.  **frontend (Interface)**: Container construído via `Dockerfile.frontend` que utiliza multi-stage build: primeiro compila a aplicação Vue.js usando Node.js, e depois serve os arquivos estáticos usando um servidor **Nginx** leve e performático.
+
+**Benefícios desta abordagem:**
+*   **Zero Config**: Novos desenvolvedores não precisam instalar Python, Node ou Postgres localmente. Basta ter Docker e rodar `docker-compose up`.
+*   **Ambiente Idêntico**: Elimina o problema de "funciona na minha máquina", pois as versões das bibliotecas e do SO são fixadas nas imagens.
+*   **Containerização**: Isolamento de dependências e facilidade de configuração do ambiente de desenvolvimento.
+*   **Suporte a configuração de nuvem**: O Docker é amplamente suportado por nuvens como AWS, Google Cloud e Azure, permitindo escalabilidade e facilidade de implantação.
+
+### 5.5 ESTRUTURA DO DEPLOY (ARQUITETURA HÍBRIDA)
+
+Para viabilizar a hospedagem **100% gratuita** de um sistema complexo com processamento pesado de dados, foi desenhada uma arquitetura de deploy distribuída e híbrida:
+
+1.  **Banco de Dados (Supabase)**: O PostgreSQL é hospedado no **Supabase** (camada Free Tier), oferecendo 500MB de armazenamento e conexões seguras via internet.
+2.  **Backend (Koyeb)**: A API Python roda na plataforma **Koyeb** como um microserviço containerizado. A plataforma detecta pushes no GitHub e realiza o build/deploy automático do Dockerfile.
+3.  **Frontend (Vercel)**: A interface Vue.js é hospedada na **Vercel**, aproveitando sua rede global de CDN (Content Delivery Network) para entregar os arquivos estáticos com latência mínima.
+4.  **ETL Híbrido (Local Worker)**: O diferencial da arquitetura. Como o processamento dos arquivos da ANS exige muita memória RAM (inviável em planos gratuitos de nuvem), o script de carga (`main.py`) é executado na máquina local do desenvolvedor. Ele processa os dados usando o poder da máquina local e insere os resultados processados diretamente no banco de dados na nuvem (Supabase).
+
+Esta estratégia desacopla o processamento pesado (ETL) da visualização leve (Dashboard), permitindo alta performance para o usuário final com custo zero de infraestrutura. 
+
+### 5.6 VISÃO GERAL DOS DASHBOARDS
 
 O sistema oferece seis componentes de visualização que compõem um dashboard analítico profissional:
 
@@ -576,62 +606,87 @@ O sistema oferece seis componentes de visualização que compõem um dashboard a
 
 ### Passo a passo
 
-1. **Clone o repositório**
-   ```bash
-   git clone <URL_DO_REPOSITORIO>
-   ```
+#### Opção A: Rodando com Docker (Recomendado 🐳)
 
-2. **Configure o Backend (Python)**
-   ```bash
-   # Crie um ambiente virtual
-   python -m venv .venv
+Esta é a maneira mais fácil e rápida de rodar o projeto.
 
-   # Ative o ambiente virtual
-   # Windows:
-   .venv\Scripts\activate
-   # Linux/Mac:
-   source .venv/bin/activate
+1.  **Clone o repositório**
+    ```bash
+    git clone <URL_DO_REPOSITORIO>
+    cd <NOME_DA_PASTA>
+    ```
 
-   # Instale as dependências
-   pip install -r requirements.txt
-   ```
+2.  **Configure o arquivo .env**
+    Crie um arquivo `.env` na raiz do projeto e preencha conforme o `env.example`.
+    *Nota: Para rodar via Docker, use os valores padrão do `entrypoint.sh` ou configure o host do banco como `db`.*
 
-3. **Configure as Variáveis de Ambiente**
-   - Crie um arquivo `.env` na raiz do projeto copiando o exemplo:
-   - `cp .env.example .env` (ou manualmente no Windows)
-   - Edite o `.env` com suas credenciais do PostgreSQL e Groq Cloud.
+3.  **Suba os containers**
+    ```bash
+    docker-compose up --build
+    ```
+    Isso iniciará o Banco de Dados, a API e o Frontend automaticamente.
 
-4. **Prepare o Banco de Dados**
-   - Certifique-se que o PostgreSQL está rodando e crie o banco:
-   ```sql
-   CREATE DATABASE ans_db;
-   ```
+4.  **Acesse**
+    *   **Frontend**: http://localhost:5173
+    *   **API**: http://localhost:8000/docs
+    *   **Adminer (Banco)**: http://localhost:8080 (se configurado)
 
-5. **Execute o ETL (Carga de Dados)**
-   - Este passo baixará os dados da ANS, processará e salvará no banco.
-   ```bash
-   python main.py
-   ```
+---
 
-6. **Inicie a API**
-   ```bash
-   uvicorn api.main:app --reload
-   # A API estará disponível em http://localhost:8000
-   # Documentação: http://localhost:8000/docs
-   ```
+#### Opção B: Instalação Manual (Sem Docker)
 
-7. **Inicie o Frontend**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   # O site estará disponível em http://localhost:5173
-   ```
+Caso prefira configurar ambiente por ambiente:
+
+1.  **Clone o repositório**
+    ```bash
+    git clone <URL_DO_REPOSITORIO>
+    ```
+
+2.  **Configure o Backend (Python)**
+    ```bash
+    # Crie um ambiente virtual
+    python -m venv .venv
+
+    # Ative o ambiente virtual
+    # Windows:
+    .venv\Scripts\activate
+    # Linux/Mac:
+    source .venv/bin/activate
+
+    # Instale as dependências
+    pip install -r requirements.txt
+    ```
+
+3.  **Configure as Variáveis de Ambiente**
+    - Crie um arquivo `.env` na raiz do projeto.
+    - Edite com suas credenciais do PostgreSQL local e Groq Cloud.
+
+4.  **Prepare o Banco de Dados**
+    - Certifique-se que o PostgreSQL está rodando localmente na porta 5432 e crie o banco:
+    ```sql
+    CREATE DATABASE ans_db;
+    ```
+
+5.  **Execute o ETL (Carga de Dados)**
+    ```bash
+    python main.py
+    ```
+
+6.  **Inicie a API**
+    ```bash
+    uvicorn api.main:app --reload
+    ```
+
+7.  **Inicie o Frontend**
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
 
 ### Configuração do Ambiente de IA
 
 Crie um arquivo `.env` na raiz do projeto (baseado no `.env.example`):
-
 
 
 ```ini
