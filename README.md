@@ -302,6 +302,8 @@ A implementação de paginação utiliza o padrão Offset-based através de par�
 
 A justificativa técnica é escala: com aproximadamente 1.000 operadoras ativas, o custo de performance do `OFFSET` no PostgreSQL é desprezível (menos de 1ms adicional), e a facilidade de implementação no frontend Vue.js é superior. O PostgreSQL otimiza queries com OFFSET pequenos usando o índice da chave primária.
 
+![Modo IA](docs/Paginação.gif)
+
 #### Estratégia de Cache: Queries em Tempo Real
 
 Para o endpoint de estatísticas `/api/analytics/storytelling`, a decisão foi por cálculo em tempo real usando queries SQL otimizadas ao invés de pré-computação ou cache. A justificativa é frequência de atualização: os dados são carregados trimestralmente (baixa frequência de escrita), então o banco PostgreSQL consegue responder agregações complexas em milissegundos devido à indexação correta.
@@ -339,6 +341,9 @@ Além das rotas básicas solicitadas, a API foi expandida para suportar um dashb
 #### Estratégia de Busca: Server-Side
 
 A implementação da busca/filtro envia o termo digitado para o backend através do parâmetro `?search=TERMO` após um *debounce* de 300ms. Esta decisão foi tomada por escalabilidade: filtrar 1.000 ou 1 milhão de registros no PostgreSQL usando índices de texto é instantâneo, enquanto filtrar no cliente (baixando todo o dataset para o navegador) seria inaceitável em conexões móveis 4G e impossível para datasets maiores. O debounce evita enviar uma requisição a cada tecla pressionada, agrupando a digitação em uma única query.
+
+![Modo IA](docs/Pesquisa.gif)
+
 
 #### Gerenciamento de Estado: Composables
 
@@ -407,6 +412,8 @@ Processamento Neural: O Llama 3 analisa a pergunta em linguagem natural, identif
 **Análise de Complexidade:** Impõe limites de timeout (5 segundos) para prevenir queries maliciosas que tentam consumir recursos computacionais (ex: produtos cartesianos sem JOIN condition).
 
 5.1.4. **Estágio 4 - Execução Segura**: A query aprovada é executada no banco de dados usando uma conexão com usuário `reader` que possui apenas permissões de leitura (SELECT). Os resultados são formatados em JSON e retornados para o frontend, onde são exibidos em formato tabular legível. Se o resultado estiver vazio, o sistema retorna uma mensagem amigável explicando que não encontrou dados, em vez de um erro técnico.
+
+![Modo IA](docs/IA.gif)
 
 #### Exemplos de Uso
 
@@ -553,6 +560,8 @@ A paleta foi cuidadosamente escolhida para garantir acessibilidade (contraste WC
 *   **Light Mode**: Backgrounds brancos (#FFFFFF), textos cinza escuro (#1F2937), acentos azuis (#3B82F6), bordas cinza claro (#E5E7EB).
 *   **Dark Mode**: Backgrounds cinza carvão (#1F2937 e #111827), textos brancos (#FFFFFF) e cinza claro (#D1D5DB), acentos azuis mais brilhantes (#60A5FA), bordas cinza médio com transparência.
 
+![Mudança Dark Light MOde](docs/Dark-Light.gif)
+
 ### 5.4 IMPLEMENTAÇÃO DOCKER
 
 O projeto utiliza **Docker** e **Docker Compose** para garantir portabilidade (`Write Once, Run Anywhere`), isolamento de dependências e facilidade de configuração do ambiente de desenvolvimento.
@@ -590,6 +599,9 @@ O sistema oferece seis componentes de visualização que compõem um dashboard a
 4.  **Consistency Club (Elite de Estabilidade)**: Componente estilo Pinterest (masonry layout) que exibe operadoras que ficaram acima da média de mercado em pelo menos 2 dos 3 trimestres. Representa empresas robustas e financeiramente consistentes. O agrupamento visual por estado facilita análise regional.
 5.  **Operators Table (Explorador Principal)**: Tabela completa, paginada e pesquisável contendo todas as operadoras. Implementa busca textual fuzzy estilo Google que procura simultaneamente em CNPJ e Razão Social. Serve como ponto de entrada principal para drill-down em operadoras específicas.
 6.  **Operator Modal (Drill-Down Granular)**: Modal de detalhamento que abre ao clicar em qualquer operadora. Exibe dados cadastrais completos (CNPJ, Registro ANS, UF, Modalidade) e tabela de eventos contábeis com tradução automática dos códigos de conta para nomes legíveis (transformando "4.1.1.4" em "Internações - Médico-Hospitalar"), permitindo análise até o nível de lançamento individual.
+
+![Modo IA](docs/Detalhamento.gif)
+
 7.  **AI Chat Widget (Análise Livre)**: Widget flutuante posicionado no canto inferior direito que permite fazer perguntas em linguagem natural sobre os dados. Democratiza o acesso à análise permitindo que usuários não técnicos façam consultas complexas sem conhecer SQL.
 8.  **System Error Screen (Falha Crítica)**: Tela de bloqueio total que intercepta falhas catastróficas de conexão com o backend (API offline ou erro 500). Substitui a interface por um feedback visual claro com botão de "Tentar Novamente", evitando que o usuário interaja com uma aplicação em estado inconsistente.
 
