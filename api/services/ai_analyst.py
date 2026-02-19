@@ -103,7 +103,7 @@ Para buscas textuais em nomes (Razão Social), use sempre: ILIKE '%TRECHO%DO%NOM
 
 Se a pergunta for sobre telefone ou contato, retorne SEMPRE: ddd, telefone (Ex: SELECT ddd, telefone FROM operadoras...)
 
-Para valores financeiros detalhados, use: SUM(d.valor) (Tabela: despesas_eventos)
+Para valores financeiros detalhados, use: COALESCE(SUM(d.valor), 0) (Tabela: despesas_eventos)
 Para KPIs prontos, use: Tabela: despesas_agregadas (Não recalcular métricas já existentes)
 
 Quando a pergunta envolver:
@@ -164,6 +164,11 @@ DEFINIÇÕES DE NEGÓCIO (IMPORTANTISSIMO):
 - TRATAMENTO DE NULOS (CRÍTICO):
 Se o usuário perguntar por um dado específico (ex: "Qual o telefone", "Qual o email", "Qual o fax"), adicione SEMPRE: WHERE campo IS NOT NULL AND campo != '' para não retornar linhas vazias.
      
+INTERPRETAÇÃO DE TERMOS E GÍRIAS:
+- "TUDO", "ISSO", "TOTAL", "QUANTO GASTOU": Entenda como "Total de Despesas Consolidado" (SUM(valor)) da operadora em todos os períodos disponíveis.
+- "CORE": Entenda como atividade principal.
+- "SINISTRO": Entenda como "Eventos Avisados" (Conta iniciada em 4.1.1).
+
 FILTRO DE RELEVÂNCIA (NOVA REGRA CRÍTICA):
 Analise se a pergunta tem relação com o banco de dados (Operadoras, Despesas, CNPJ, Estados, Finanças, Saúde).
 Se a pergunta for "Oi", "Tudo bem", "Como vai", ou random words/nonsense que não se aplicam ao contexto de dados("qual o sentido da vida", "receita de bolo"):
@@ -268,11 +273,21 @@ def process_user_query(user_question: str, db: Session):
                 break
         
         if not has_content:
+             # Tentativa de identificar o contexto pela coluna
+             cols = [c.lower() for c in columns]
+             if any(term in cols for term in ['total', 'valor', 'soma', 'despesa', 'gasto']):
+                 return {
+                    "sql": generated_sql,
+                    "data": [{"resultado": "R$ 0,00"}],
+                    "count": 1,
+                    "error": None # Não é erro, é zero.
+                 }
+             
              return {
                 "sql": generated_sql,
                 "data": [],
                 "count": 0,
-                "error": "Encontrei o registro, mas a informação solicitada (ex: telefone/fax) não consta no cadastro da ANS."
+                "error": "Encontrei o registro, mas a informação solicitada não consta na base de dados (valor nulo ou vazio)."
             }
         
         return {

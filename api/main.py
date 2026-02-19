@@ -54,7 +54,11 @@ app = FastAPI(
 # Configuração de CORS (Permite acesso do Frontend Vue.js)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:8000",
+        "https://analise-de-contas-ans.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
