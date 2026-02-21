@@ -9,8 +9,8 @@
 
   /* Esquema de cores e variáveis base para Light Mode */
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: #212529;
+  background-color: #f8f9fa;
 
   /* Otimizações de fonte */
   font-synthesis: none;
@@ -59,10 +59,8 @@ body {
 }
 
 /* Suporte a Overlay no Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .loading-overlay {
-    background-color: rgba(36, 36, 36, 0.9);
-  }
+[data-theme="dark"] .loading-overlay {
+  background-color: rgba(36, 36, 36, 0.9);
 }
 
 /* =========================================

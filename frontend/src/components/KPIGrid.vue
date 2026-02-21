@@ -64,11 +64,11 @@ const kpis = computed(() => {
 </script>
 
 <style scoped>
-/* Ajustes de cor de texto para garantir contraste em fundos escuros/glass */
+/* Ajustes de cor de texto respeitando o tema ativo */
 .text-secondary {
-    color: #9ca3af !important;
+    color: var(--text-secondary) !important;
 }
 .text-muted {
-    color: #6b7280 !important;
+    color: var(--text-secondary) !important;
 }
 </style>

@@ -4,7 +4,7 @@
       <div class="d-flex justify-content-between align-items-center">
         <div class="text-start">
           <h5 class="fw-bold text-primary mb-1">🏆 Clube da Consistência</h5>
-          <p class="mb-0 small text-white opacity-75">Operadoras que superaram a média de mercado em 2+ trimestres (Top 50).</p>
+          <p class="mb-0 small text-muted">Operadoras que superaram a média de mercado em 2+ trimestres (Top 50).</p>
         </div>
         <span class="badge bg-primary rounded-pill">{{ totalCompanies }} Empresas</span>
       </div>
@@ -18,7 +18,7 @@
           <div class="card border-0 shadow-sm mb-3 glass-card">
             <div class="card-header fw-bold border-bottom-0 d-flex justify-content-between align-items-center">
               <span>📍 {{ state || 'Indefinido' }}</span>
-              <span class="badge bg-secondary bg-opacity-10 text-white rounded-pill">{{ companies.length }}</span>
+              <span class="badge bg-secondary rounded-pill">{{ companies.length }}</span>
             </div>
             <div class="card-body p-0">
               <ul class="list-group list-group-flush">
