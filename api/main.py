@@ -57,8 +57,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:8000",
-        "https://analise-de-contas-ans.vercel.app"
+        "https://analise-de-contas-ans.vercel.app",
+        "https://analise-de-contas-2yt3e3oc0-rafael-santos-projects-729d6730.vercel.app",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Cobre todos os previews do Vercel
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
